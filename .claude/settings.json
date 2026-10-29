@@ -1,16 +1,5 @@
 {
   "hooks": {
-        "PreToolUse": [
-      {
-        "matcher": "Bash|Read|Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /Users/litalshalev/Repos/kumiq-hooks/dist/cli.js check-standards-gate"
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [
