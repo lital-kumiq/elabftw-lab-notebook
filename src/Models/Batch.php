@@ -50,43 +50,46 @@ final class Batch extends AbstractRest
             Guard::ensureRequiredKeysPresent(array('userid', 'team'), $reqBody);
             Guard::ensurePositiveInts(array('userid', 'team'), $reqBody);
         }
+        $defaultStates = $state ? array($state) : array(State::Normal);
         if ($reqBody['items_tags']) {
             $this->processTags($reqBody['items_tags'], new Items($this->requester), $action, $reqBody);
         }
         if ($reqBody['items_categories']) {
             $model = new Items($this->requester);
-            $this->processEntities($reqBody['items_categories'], $model, FilterableColumn::Category, $action, $reqBody, $state);
+            $this->processEntities($reqBody['items_categories'], $model, FilterableColumn::Category, $action, $reqBody, $defaultStates);
         }
         if ($reqBody['items_status']) {
             $model = new Items($this->requester);
-            $this->processEntities($reqBody['items_status'], $model, FilterableColumn::Status, $action, $reqBody, $state);
+            $this->processEntities($reqBody['items_status'], $model, FilterableColumn::Status, $action, $reqBody, $defaultStates);
         }
         if ($reqBody['experiments_categories']) {
             $model = new Experiments($this->requester);
-            $this->processEntities($reqBody['experiments_categories'], $model, FilterableColumn::Category, $action, $reqBody, $state);
+            $this->processEntities($reqBody['experiments_categories'], $model, FilterableColumn::Category, $action, $reqBody, $defaultStates);
         }
         if ($reqBody['experiments_status']) {
             $model = new Experiments($this->requester);
-            $this->processEntities($reqBody['experiments_status'], $model, FilterableColumn::Status, $action, $reqBody, $state);
+            $this->processEntities($reqBody['experiments_status'], $model, FilterableColumn::Status, $action, $reqBody, $defaultStates);
         }
         if ($reqBody['experiments_tags']) {
             $this->processTags($reqBody['experiments_tags'], new Experiments($this->requester), $action, $reqBody);
         }
         if ($reqBody['users_experiments']) {
             $model = new Experiments($this->requester);
-            $this->processEntities($reqBody['users_experiments'], $model, FilterableColumn::Owner, $action, $reqBody, $state);
+            $states = $action === Action::UpdateOwner ? array(State::Normal, State::Archived) : ($state ? array($state) : array(State::Normal));
+            $this->processEntities($reqBody['users_experiments'], $model, FilterableColumn::Owner, $action, $reqBody, $states);
         }
         if ($reqBody['users_resources']) {
             $model = new Items($this->requester);
-            $this->processEntities($reqBody['users_resources'], $model, FilterableColumn::Owner, $action, $reqBody, $state);
+            $states = $action === Action::UpdateOwner ? array(State::Normal, State::Archived) : ($state ? array($state) : array(State::Normal));
+            $this->processEntities($reqBody['users_resources'], $model, FilterableColumn::Owner, $action, $reqBody, $states);
         }
         if ($reqBody['users_experiments_templates']) {
             $model = new Templates($this->requester);
-            $this->processEntities($reqBody['users_experiments_templates'], $model, FilterableColumn::Owner, $action, $reqBody, $state);
+            $this->processEntities($reqBody['users_experiments_templates'], $model, FilterableColumn::Owner, $action, $reqBody, $defaultStates);
         }
         if ($reqBody['users_resources_templates']) {
             $model = new ItemsTypes($this->requester);
-            $this->processEntities($reqBody['users_resources_templates'], $model, FilterableColumn::Owner, $action, $reqBody, $state);
+            $this->processEntities($reqBody['users_resources_templates'], $model, FilterableColumn::Owner, $action, $reqBody, $defaultStates);
         }
         return $this->processed;
     }
@@ -97,9 +100,9 @@ final class Batch extends AbstractRest
         return 'api/v2/batch/';
     }
 
-    private function processEntities(array $idArr, AbstractConcreteEntity|AbstractTemplateEntity $model, FilterableColumn $column, Action $action, array $params, ?State $state = null): void
+    private function processEntities(array $idArr, AbstractConcreteEntity|AbstractTemplateEntity $model, FilterableColumn $column, Action $action, array $params, array $states = array(State::Normal)): void
     {
-        $entries = $this->getEntriesByIds($idArr, $model, $column, $state);
+        $entries = $this->getEntriesByIds($idArr, $model, $column, $states);
         $this->loopOverEntries($entries, $model, $action, $params);
     }
 
@@ -112,7 +115,7 @@ final class Batch extends AbstractRest
         $this->loopOverEntries($tagEntries, $model, $action, $params);
     }
 
-    private function getEntriesByIds(array $idArr, AbstractConcreteEntity|AbstractTemplateEntity $model, FilterableColumn $column, ?State $state): array
+    private function getEntriesByIds(array $idArr, AbstractConcreteEntity|AbstractTemplateEntity $model, FilterableColumn $column, array $states = array(State::Normal)): array
     {
         $allEntries = array();
         foreach ($idArr as $id) {
@@ -121,7 +124,7 @@ final class Batch extends AbstractRest
                 // this is needed so psalm is happy (might be a bug in psalm)
                 entityType: $model->entityType,
                 query: null,
-                states: $state ? array($state) : array(State::Normal),
+                states: $states,
             );
             $DisplayParams->appendFilterSql($column, $id);
             $entries = $model->readShow($DisplayParams, false);

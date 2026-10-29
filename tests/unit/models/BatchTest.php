@@ -158,6 +158,20 @@ class BatchTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($User2->userid, $UploadAfter->uploadData['userid']);
     }
 
+    public function testBatchOwnershipTransferIncludesArchivedExperiments(): void
+    {
+        $User1 = new Users(1, 1);
+        $User2 = new Users(2, 1);
+        $Experiment = $this->getFreshExperimentWithGivenUser($User1);
+        $Experiment->patch(Action::Archive, array());
+        $this->baseReqBody['users_experiments'] = array($User1->userid);
+        $this->baseReqBody['userid'] = $User2->userid;
+        $this->baseReqBody['team'] = $User1->team;
+        $this->assertBatchProcessed(Action::UpdateOwner, $this->baseReqBody);
+        $Experiment->setId($Experiment->id);
+        $this->assertEquals($User2->userid, $Experiment->entityData['userid']);
+    }
+
     public function testGetApiPath(): void
     {
         $this->assertEquals('api/v2/batch/', $this->Batch->getApiPath());

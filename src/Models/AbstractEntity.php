@@ -558,7 +558,7 @@ abstract class AbstractEntity extends AbstractRest
         if ($state === State::Deleted->value && !in_array($action, $allowedActionsOnDeleted, true)) {
             throw new UnprocessableContentException(_('Only the Restore action is allowed on a deleted entity.'));
         }
-        if ($state === State::Archived->value && ($action !== Action::Unarchive && $action !== Action::Archive)) {
+        if ($state === State::Archived->value && ($action !== Action::Unarchive && $action !== Action::Archive && $action !== Action::UpdateOwner)) {
             throw new UnprocessableContentException(_('This action is not allowed on an archived entity.'));
         }
 
@@ -1623,6 +1623,9 @@ abstract class AbstractEntity extends AbstractRest
         }
         // we might lose read access after the transfer, so don't readOne() after patch()
         $this->readAfterPatch = false;
+        $previousOwnerUserid = (int) $this->entityData['userid'];
+        $Changelog = new Changelog($this);
+        $Changelog->create(new ContentParams('ownership_transfer', sprintf('from:%d', $previousOwnerUserid)));
         $this->update(new EntityParams('userid', $userid));
         $this->update(new EntityParams('team', $destinationTeam));
         // transfer uploads, too

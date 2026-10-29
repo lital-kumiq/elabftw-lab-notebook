@@ -337,6 +337,43 @@ class ExperimentsTest extends \PHPUnit\Framework\TestCase
         $exp->patch(Action::UpdateOwner, array('userid' => $user2->userid, 'team' => 2));
     }
 
+    public function testUpdateOwnershipOnArchivedExperiment(): void
+    {
+        $user1 = new Users(1, 1);
+        $user2 = new Users(2, 1);
+        $exp = $this->getFreshExperimentWithGivenUser($user1);
+        $exp->patch(Action::Archive, array());
+        $exp->patch(Action::UpdateOwner, array('userid' => $user2->userid, 'team' => $user2->getTeam()));
+        $entityData = $exp->readOne();
+        $this->assertEquals($user2->userid, $entityData['userid']);
+    }
+
+    public function testUpdateOwnershipOnLockedExperiment(): void
+    {
+        $user1 = new Users(1, 1);
+        $user2 = new Users(2, 1);
+        $exp = $this->getFreshExperimentWithGivenUser($user1);
+        $exp->patch(Action::ForceLock, array());
+        $exp->patch(Action::UpdateOwner, array('userid' => $user2->userid, 'team' => $user2->getTeam()));
+        $entityData = $exp->readOne();
+        $this->assertEquals($user2->userid, $entityData['userid']);
+    }
+
+    public function testUpdateOwnershipRecordsOriginalOwnerInChangelog(): void
+    {
+        $user1 = new Users(1, 1);
+        $user2 = new Users(2, 1);
+        $exp = $this->getFreshExperimentWithGivenUser($user1);
+        $originalUserid = $user1->userid;
+        $exp->patch(Action::UpdateOwner, array('userid' => $user2->userid, 'team' => $user2->getTeam()));
+        $entityData = $exp->readOne();
+        $changelog = $entityData['changelog'];
+        $ownershipEntry = array_filter($changelog, fn($entry) => $entry['target'] === 'ownership_transfer');
+        $this->assertNotEmpty($ownershipEntry, 'Expected an ownership_transfer changelog entry');
+        $entry = reset($ownershipEntry);
+        $this->assertStringContainsString((string) $originalUserid, $entry['content']);
+    }
+
     public function testUpdateWithNegativeInt(): void
     {
         $this->assertIsArray($this->Experiments->patch(Action::Update, array('category' => '-3', 'custom_id' => '-5')));
