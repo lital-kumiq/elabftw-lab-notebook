@@ -9,6 +9,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "get_standards|list_workflow_skills|get_workflow_skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /absolute/path/to/this/repo/dist/hooks/workflow-gate.js"
+          }
+        ]
+      }
     ]
   }
 }
