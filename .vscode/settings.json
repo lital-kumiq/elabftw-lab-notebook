@@ -1,0 +1,10 @@
+{
+  "mcp": {
+    "servers": {
+      "KumiQ": {
+        "url": "https://mcp-dzv7.onrender.com/mcp",
+        "type": "http"
+      }
+    }
+  }
+}
